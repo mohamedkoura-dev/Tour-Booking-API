@@ -24,7 +24,7 @@ exports.updateMe = catchAsync(async (req, res, next) => {
   }
 
   //Filter Body to only update name and email
-  const filteredBody = filterObj(req.body, 'name', 'email');
+  const filteredBody = filterObj(req.body, 'name', 'email', 'photo');
 
   //If not we simply need to update user document
   const updatedUser = await User.findByIdAndUpdate(req.user.id, filteredBody, {

@@ -13,6 +13,7 @@ exports.signup = catchAsync(async (req, res, next) => {
   const newUser = await User.create({
     name: req.body.name,
     email: req.body.email,
+    photo: req.body.photo || 'default.jpg',
     password: req.body.password,
     passwordConfirm: req.body.passwordConfirm,
     passwordChangedAt: req.body.passwordChangedAt,
@@ -38,13 +39,25 @@ exports.login = catchAsync(async (req, res, next) => {
   createAndSendToken(user, 200, res);
 });
 
+exports.logout = (req, res) => {
+  res.cookie('jwt', 'LoggedOut', {
+    expires: new Date(Date.now() + 10 * 1000),
+    httpOnly: true,
+  });
+
+  res.status(200).json({
+    status: 'success',
+  });
+};
+
 exports.protect = catchAsync(async (req, res, next) => {
   //Get The token and check if it's exist
   let token;
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     token = req.headers.authorization.split(' ')[1];
+  } else if (req.cookies.jwt) {
+    token = req.cookies.jwt;
   }
-
   if (!token) {
     return next(new AppError('You are not logged in, please log in to get access', 401));
   }
@@ -67,9 +80,50 @@ exports.protect = catchAsync(async (req, res, next) => {
 
   //GRANT ACCESS TO THE PROTECTED ROUTE VIA attaching the user data to the request object
   req.user = currentUser;
-
+  res.locals.user = currentUser;
   next();
 });
+
+exports.restrictTo = (...roles) => {
+  return (req, res, next) => {
+    //roles ['admin', 'lead-guide', .....].
+    if (!roles.includes(req.user.role)) {
+      return next(new AppError('You do not have permission to perform this action', 403));
+    }
+
+    next();
+  };
+};
+
+exports.isLoggedIn = async (req, res, next) => {
+  //Get The token and check if it's exist
+  let token;
+
+  if (req.cookies.jwt) {
+    try {
+      token = req.cookies.jwt;
+
+      //Verification the token (Checking if the token is valid or not) by decoding it, decoding means exactly in details what's inside the token which is the payload data and the signature and checking if the signature is valid by comparing it to a new signature generated from the header and payload using the secret key
+      const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+
+      //Check if user still exists
+      const currentUser = await User.findById(decoded.id);
+
+      if (!currentUser) return next();
+
+      //Check if the user change password after the jwt was issued -> checking if the token is still valid
+      if (currentUser.changedPasswordAfter(decoded.iat)) {
+        return next();
+      }
+
+      //GRANT ACCESS TO THE PROTECTED ROUTE VIA attaching the user data to the request object
+      res.locals.user = currentUser;
+    } catch (error) {
+      return next();
+    }
+  }
+  next();
+};
 
 exports.restrictTo = (...roles) => {
   return (req, res, next) => {

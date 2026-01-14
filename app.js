@@ -9,6 +9,7 @@ const path = require('path');
 const morgan = require('morgan'); //Logger in the console
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 // const mongoSanitize = require('express-mongo-sanitize');
 // const xss = require('xss-clean');
 // const hpp = require('hpp');
@@ -17,6 +18,7 @@ const helmet = require('helmet');
 const tourRouter = require(`${__dirname}/routes/tourRoutes`);
 const userRouter = require(`${__dirname}/routes/userRoutes`);
 const reviewRouter = require(`${__dirname}/routes/reviewRoutes`);
+const viewRouter = require(`${__dirname}/routes/viewRoutes`);
 const globalErrorHandler = require('./controllers/errorController');
 const AppError = require('./utils/appError');
 
@@ -27,7 +29,15 @@ app.set('query parser', (str) => qs.parse(str)); //to use qs library (globally) 
 //Middlewares (Checkpoints)
 if (process.env.NODE_ENV === 'development') app.use(morgan('dev')); //Logging middleware in case we are in dev mode
 
-app.use(helmet());
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", 'https://cdnjs.cloudflare.com'],
+      connectSrc: ["'self'", 'ws://localhost:*', 'http://localhost:*'],
+    },
+  }),
+);
 
 //Limiting too many requests on the same API (Our software simply) to prevent brute force attacks
 const limiter = rateLimit({
@@ -39,6 +49,7 @@ app.use('/api', limiter);
 
 // reading data from the body of the request into req.body
 app.use(express.json({ limit: '10kb' }));
+app.use(cookieParser());
 
 // //Data Sanitization against query injections
 // app.use(mongoSanitize());
@@ -66,27 +77,14 @@ app.set('views', path.join(__dirname, 'views'));
 //Serving static files (middleware) means that if there is any file in the public folder and the user tries to access it directly from the url it will be served directly without going through any route handler
 app.use(express.static(path.join(__dirname, 'public')));
 
-//Views Routes
-app.get('/', (req, res) => {
-  res.status(200).render('base', {
-    tour: 'The Forest Hiker',
-    user: 'Mohamed',
-  });
-});
-
-app.get('/overview', (req, res) => {
-  res.status(200).render('overview', {
-    title: 'All Tours',
-  });
-});
-
-app.get('/tour', (req, res) => {
-  res.status(200).render('tour', {
-    title: 'The Forest Hiker',
-  });
-});
+//TEST MIDDLEWARE
+// app.use((req, res, next) => {
+//   console.log(req.cookies);
+//   next();
+// });
 
 // API Routes (also Middlewares)
+app.use('/', viewRouter);
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/reviews', reviewRouter);
