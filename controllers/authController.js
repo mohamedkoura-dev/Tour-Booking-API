@@ -3,7 +3,7 @@
 const AppError = require('../utils/appError');
 const catchAsync = require('./../utils/catchAsync');
 const User = require('./../models/userModel');
-const sendEmail = require('./../utils/email');
+const Email = require('./../utils/email');
 const createAndSendToken = require('./../utils/createAndSendToken');
 const { promisify } = require('util');
 const crypto = require('crypto');
@@ -13,12 +13,18 @@ exports.signup = catchAsync(async (req, res, next) => {
   const newUser = await User.create({
     name: req.body.name,
     email: req.body.email,
-    photo: req.body.photo || 'default.jpg',
     password: req.body.password,
     passwordConfirm: req.body.passwordConfirm,
     passwordChangedAt: req.body.passwordChangedAt,
   });
 
+  //Constructing and sending the welcome email our Email class (service)
+  const url = `${req.protocol}://${req.get('host')}/me`;
+  const email = new Email(newUser, url);
+
+  await email.sendWelcome();
+
+  //Logging signed up user in automatically after signing up
   createAndSendToken(newUser, 201, res);
 });
 
@@ -41,7 +47,7 @@ exports.login = catchAsync(async (req, res, next) => {
 
 exports.logout = (req, res) => {
   res.cookie('jwt', 'LoggedOut', {
-    expires: new Date(Date.now() + 10 * 1000),
+    expires: new Date(Date.now() + 5 * 1000),
     httpOnly: true,
   });
 
@@ -53,13 +59,18 @@ exports.logout = (req, res) => {
 exports.protect = catchAsync(async (req, res, next) => {
   //Get The token and check if it's exist
   let token;
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
     token = req.headers.authorization.split(' ')[1];
   } else if (req.cookies.jwt) {
     token = req.cookies.jwt;
   }
   if (!token) {
-    return next(new AppError('You are not logged in, please log in to get access', 401));
+    return next(
+      new AppError('You are not logged in, please log in to get access', 401),
+    );
   }
 
   //Verification the token (Checking if the token is valid or not) by decoding it, decoding means exactly in details what's inside the token which is the payload data and the signature and checking if the signature is valid by comparing it to a new signature generated from the header and payload using the secret key
@@ -70,12 +81,17 @@ exports.protect = catchAsync(async (req, res, next) => {
 
   if (!currentUser)
     return next(
-      new AppError('The user belonging to this token does no longer exist.', 401),
+      new AppError(
+        'The user belonging to this token does no longer exist.',
+        401,
+      ),
     );
 
   //Check if the user change password after the jwt was issued -> checking if the token is still valid
   if (currentUser.changedPasswordAfter(decoded.iat)) {
-    return next(new AppError('User recently changed password. Please login again', 401));
+    return next(
+      new AppError('User recently changed password. Please login again', 401),
+    );
   }
 
   //GRANT ACCESS TO THE PROTECTED ROUTE VIA attaching the user data to the request object
@@ -88,7 +104,9 @@ exports.restrictTo = (...roles) => {
   return (req, res, next) => {
     //roles ['admin', 'lead-guide', .....].
     if (!roles.includes(req.user.role)) {
-      return next(new AppError('You do not have permission to perform this action', 403));
+      return next(
+        new AppError('You do not have permission to perform this action', 403),
+      );
     }
 
     next();
@@ -104,7 +122,10 @@ exports.isLoggedIn = async (req, res, next) => {
       token = req.cookies.jwt;
 
       //Verification the token (Checking if the token is valid or not) by decoding it, decoding means exactly in details what's inside the token which is the payload data and the signature and checking if the signature is valid by comparing it to a new signature generated from the header and payload using the secret key
-      const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+      const decoded = await promisify(jwt.verify)(
+        token,
+        process.env.JWT_SECRET,
+      );
 
       //Check if user still exists
       const currentUser = await User.findById(decoded.id);
@@ -129,7 +150,9 @@ exports.restrictTo = (...roles) => {
   return (req, res, next) => {
     //roles ['admin', 'lead-guide', .....].
     if (!roles.includes(req.user.role)) {
-      return next(new AppError('You do not have permission to perform this action', 403));
+      return next(
+        new AppError('You do not have permission to perform this action', 403),
+      );
     }
 
     next();
@@ -168,15 +191,11 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
   await user.save({ validateBeforeSave: false });
 
   //Sending the resetToken via email to the user's email
-  const resetURL = `${req.protocol}://${req.get('host')}/api/v1/users/resetPassword/${resetToken}`;
-  const message = `You requested a password reset. Click the link below to reset your password:\n\n${resetURL}\n\nThis link will expire in 10 minutes.\n\nIf you didn't request this, please ignore this email and your password will remain unchanged.`;
-
   try {
-    await sendEmail({
-      email: user.email,
-      subject: 'Your password reset token (Valid for 10 min)',
-      message,
-    });
+    const resetURL = `${req.protocol}://${req.get('host')}/api/v1/users/resetPassword/${resetToken}`;
+
+    const resetEmail = new Email(user, resetURL);
+    await resetEmail.sendPasswordReset();
 
     res.status(200).json({
       status: 'success',
@@ -201,7 +220,10 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 
 exports.resetPassword = catchAsync(async (req, res, next) => {
   //Get user based on the token
-  const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+  const hashedToken = crypto
+    .createHash('sha256')
+    .update(req.params.token)
+    .digest('hex');
   const user = await User.findOne({
     passwordResetToken: hashedToken,
     passwordResetExpires: { $gt: Date.now() },

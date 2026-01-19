@@ -20,7 +20,9 @@ exports.deleteOne = (Model) =>
     const doc = await Model.findByIdAndDelete(req.params.id);
 
     if (!doc) {
-      return next(new AppError(`Can not find a Document with ID:${req.params.id}`, 404));
+      return next(
+        new AppError(`Can not find a Document with ID:${req.params.id}`, 404),
+      );
     }
 
     res.status(204).json({
@@ -31,7 +33,9 @@ exports.deleteOne = (Model) =>
 
 exports.updateOne = (Model, filterFields) =>
   catchAsync(async (req, res, next) => {
-    let filteredBody = filterFields ? filterBody(req.body, ...filterFields) : req.body;
+    let filteredBody = filterFields
+      ? filterBody(req.body, ...filterFields)
+      : req.body;
 
     //What i did here is distinguishing between the update functionality between updating the tours and updating a user
     //So with the tour i use the req.body object to be the new data
@@ -43,7 +47,9 @@ exports.updateOne = (Model, filterFields) =>
     });
 
     if (!doc)
-      return next(new AppError(`Can not find a document with ID:${req.params.id}`, 404));
+      return next(
+        new AppError(`Can not find a document with ID:${req.params.id}`, 404),
+      );
 
     res.status(200).json({
       status: 'success',
@@ -64,7 +70,9 @@ exports.getOne = (Model, ...populateOptions) =>
     const doc = await query;
 
     if (!doc)
-      return next(new AppError(`Can not find a tour with ID:${req.params.id}`, 404));
+      return next(
+        new AppError(`Can not find a tour with ID:${req.params.id}`, 404),
+      );
 
     res.status(200).json({
       status: 'success',
@@ -80,7 +88,10 @@ exports.getAll = (Model, customQuery = undefined) =>
     let filter;
     if (req.params.tourId) filter = { tour: req.params.tourId };
 
-    const feature = new APIFeatures(Model.find(filter), req.customQuery || req.query);
+    const feature = new APIFeatures(
+      Model.find(filter),
+      req.customQuery || req.query,
+    );
 
     feature.filter().limit().sort().paginate();
 
