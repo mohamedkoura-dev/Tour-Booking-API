@@ -34,7 +34,7 @@ if (userDataForm) {
     form.append('email', document.getElementById('email').value);
     form.append('photo', document.getElementById('photo').files[0]);
 
-    console.log(form);
+    // console.log(form);
 
     updateSettings(form, 'data');
   });
@@ -50,13 +50,9 @@ if (userPasswordForm) {
     const password = document.getElementById('password').value;
     const passwordConfirm = document.getElementById('password-confirm').value;
 
-    await updateSettings(
-      { passwordCurrent, password, passwordConfirm },
-      'password',
-    );
+    await updateSettings({ passwordCurrent, password, passwordConfirm }, 'password');
 
-    document.querySelector('.btn--save--password').textContent =
-      'Save password';
+    document.querySelector('.btn--save--password').textContent = 'Save password';
     document.getElementById('password-current').value = '';
     document.getElementById('password').value = '';
     document.getElementById('password-confirm').value = '';
@@ -65,11 +61,9 @@ if (userPasswordForm) {
 
 if (bookBtn) {
   bookBtn.addEventListener('click', (e) => {
-    console.log('Book button clicked!');
     e.target.textContent = 'Processing...';
 
     const tourId = e.target.dataset.tourId;
-    console.log('Tour ID:', tourId);
 
     bookTour(tourId);
   });

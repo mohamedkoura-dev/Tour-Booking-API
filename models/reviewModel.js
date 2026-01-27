@@ -80,7 +80,7 @@ reviewSchema.post('save', function (next) {
 
 reviewSchema.pre(/^findOneAnd/, async function (next) {
   this.r = await this.clone().findOne();
-  console.log(this.r);
+  // console.log(this.r);
 
   next();
 });
