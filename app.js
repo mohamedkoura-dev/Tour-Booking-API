@@ -22,6 +22,7 @@ const bookingRouter = require(`${__dirname}/routes/bookingRoutes`);
 const viewRouter = require(`${__dirname}/routes/viewRoutes`);
 const globalErrorHandler = require('./controllers/errorController');
 const AppError = require('./utils/appError');
+const compression = require('compression');
 
 //Instantiation of my express app
 const app = express();
@@ -34,11 +35,7 @@ app.use(
   helmet.contentSecurityPolicy({
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: [
-        "'self'",
-        'https://cdnjs.cloudflare.com',
-        'https://js.stripe.com',
-      ],
+      scriptSrc: ["'self'", 'https://cdnjs.cloudflare.com', 'https://js.stripe.com'],
       frameSrc: ['https://js.stripe.com', 'https://hooks.stripe.com'],
       imgSrc: ["'self'", 'data:', 'https://*.stripe.com'],
       styleSrc: ["'self'", "'unsafe-inline'"],
@@ -103,6 +100,8 @@ app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/reviews', reviewRouter);
 app.use('/api/v1/bookings', bookingRouter);
+
+app.use(compression());
 
 //Middleware to create an error for routes that are not specified or cached
 app.use((req, res, next) => {
