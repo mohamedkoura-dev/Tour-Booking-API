@@ -40,9 +40,7 @@ router.use(authController.restrictTo('admin'));
 
 router.route('/:id').get(userController.getUser);
 
-router
-  .route('/')
-  .get(userController.getAllUsers)
-  .post(userController.createUser);
+router.route('/').get(userController.getAllUsers);
+// .post(userController.createUser);
 
 module.exports = router;

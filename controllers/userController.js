@@ -97,9 +97,9 @@ exports.updateUser = factory.updateOne(User, ['name', 'email', 'role']); //Admin
 exports.deleteUser = factory.deleteOne(User); // permanently delete (Admin)
 
 //Just for the sake of completion but it does not do anything
-exports.createUser = (req, res, next) => {
-  res.status(500).json({
-    status: 'error',
-    message: 'This route is not defined. Please use /signup instead',
-  });
-};
+// exports.createUser = (req, res, next) => {
+//   res.status(500).json({
+//     status: 'error',
+//     message: 'This route is not defined. Please use /signup instead',
+//   });
+// };

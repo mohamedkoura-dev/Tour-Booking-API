@@ -1,6 +1,6 @@
 const nodemailer = require('nodemailer');
-const pug = require('pug');
 const htmlToText = require('html-to-text');
+const pug = require('pug');
 
 module.exports = class Email {
   constructor(user, url) {
@@ -11,6 +11,7 @@ module.exports = class Email {
   }
 
   newTransport() {
+    //Sendgrid for sending real emails in production
     if (process.env.NODE_ENV === 'production') {
       return nodemailer.createTransport({
         service: 'Sendgrid',
@@ -21,6 +22,7 @@ module.exports = class Email {
       });
     }
 
+    //If not so we use mailtrap for testing purposes
     return nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: process.env.EMAIL_PORT,
@@ -67,7 +69,7 @@ module.exports = class Email {
   }
 
   async sendWelcome() {
-    await this.send('welcome', 'ZOBRY MANGA BRO');
+    await this.send('welcome', 'Welcome To Natours!!');
   }
 
   async sendPasswordReset() {

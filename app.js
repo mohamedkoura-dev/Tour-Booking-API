@@ -18,6 +18,7 @@ const cookieParser = require('cookie-parser');
 const tourRouter = require(`${__dirname}/routes/tourRoutes`);
 const userRouter = require(`${__dirname}/routes/userRoutes`);
 const reviewRouter = require(`${__dirname}/routes/reviewRoutes`);
+const bookingRouter = require(`${__dirname}/routes/bookingRoutes`);
 const viewRouter = require(`${__dirname}/routes/viewRoutes`);
 const globalErrorHandler = require('./controllers/errorController');
 const AppError = require('./utils/appError');
@@ -33,8 +34,21 @@ app.use(
   helmet.contentSecurityPolicy({
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", 'https://cdnjs.cloudflare.com'],
-      connectSrc: ["'self'", 'ws://localhost:*', 'http://localhost:*'],
+      scriptSrc: [
+        "'self'",
+        'https://cdnjs.cloudflare.com',
+        'https://js.stripe.com',
+      ],
+      frameSrc: ['https://js.stripe.com', 'https://hooks.stripe.com'],
+      imgSrc: ["'self'", 'data:', 'https://*.stripe.com'],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+
+      connectSrc: [
+        "'self'",
+        'ws://localhost:*',
+        'http://localhost:*',
+        'https://api.stripe.com',
+      ],
     },
   }),
 );
@@ -88,6 +102,7 @@ app.use('/', viewRouter);
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/reviews', reviewRouter);
+app.use('/api/v1/bookings', bookingRouter);
 
 //Middleware to create an error for routes that are not specified or cached
 app.use((req, res, next) => {

@@ -41,7 +41,7 @@ exports.login = catchAsync(async (req, res, next) => {
   if (!user || !(await user.correctPassword(password, user.password)))
     return next(new AppError('incorrect email or password', 401));
 
-  //if everything is okay, send the token to the client
+  //if everything is okay, send the token to the client and log him in
   createAndSendToken(user, 200, res);
 });
 
@@ -137,7 +137,7 @@ exports.isLoggedIn = async (req, res, next) => {
         return next();
       }
 
-      //GRANT ACCESS TO THE PROTECTED ROUTE VIA attaching the user data to the request object
+      //GRANT ACCESS TO THE PROTECTED ROUTE VIA attaching the user data to the locals object
       res.locals.user = currentUser;
     } catch (error) {
       return next();
